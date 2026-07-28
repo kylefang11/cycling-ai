@@ -29,11 +29,7 @@ const App = {
       }
     } catch (e) {
       console.warn('地图初始化异常:', e);
-      this._showToast('地图加载失败，请在设置中配置API Key后刷新');
     }
-
-    // 绑定事件
-    this._bindEvents();
 
     // 解锁 iOS 音频（需要用户交互）
     document.addEventListener('touchstart', () => {
@@ -538,6 +534,13 @@ const App = {
 
 // ===== 启动 =====
 document.addEventListener('DOMContentLoaded', () => {
-  App.init();
+  // 先绑定基础UI事件（即使地图加载失败也能用）
+  App._bindEvents();
+  App._loadSettingsUI();
   App._loadHistoryList();
+
+  // 然后异步初始化地图
+  App.init().catch(err => {
+    console.warn('App init error:', err);
+  });
 });

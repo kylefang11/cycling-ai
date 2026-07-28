@@ -227,7 +227,7 @@
       const key = Config.get('amapKey');
       if (key) {
         const s = document.createElement('script');
-        s.src = 'https://webapi.amap.com/maps?v=2.0&key=' + key + '&plugin=AMap.Driving,AMap.Walking,AMap.Riding,AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.GeoLocation';
+        s.src = 'https://webapi.amap.com/maps?v=2.0&key=' + key;
         s.onerror = function() { console.warn('高德地图加载失败'); };
         document.body.appendChild(s);
       } else {

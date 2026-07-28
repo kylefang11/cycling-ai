@@ -21,10 +21,15 @@ const App = {
     Voice.init();
     Voice.preload();
 
-    // 初始化地图
-    const mapReady = await MapCtrl.init();
-    if (!mapReady) {
-      this._showToast('地图加载失败，请检查API Key');
+    // 初始化地图（可能失败，不影响其他功能）
+    try {
+      const mapReady = await MapCtrl.init();
+      if (!mapReady) {
+        this._showToast('地图加载失败，请在设置中配置API Key后刷新');
+      }
+    } catch (e) {
+      console.warn('地图初始化异常:', e);
+      this._showToast('地图加载失败，请在设置中配置API Key后刷新');
     }
 
     // 绑定事件

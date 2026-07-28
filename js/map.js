@@ -36,6 +36,21 @@ const MapCtrl = {
       console.warn('未配置高德地图 Key');
     }
 
+    // 加载插件（API 2.0 需要先加载插件再使用）
+    await new Promise((resolve) => {
+      AMap.plugin([
+        'AMap.Driving',
+        'AMap.Walking',
+        'AMap.Riding',
+        'AMap.Geocoder',
+        'AMap.AutoComplete',
+        'AMap.PlaceSearch',
+        'AMap.Geolocation'
+      ], () => {
+        resolve();
+      });
+    });
+
     // 创建地图
     this.map = new AMap.Map('amap', {
       zoom: 14,
@@ -60,7 +75,9 @@ const MapCtrl = {
     // 自动补全
     try {
       this._autoComplete = new AMap.AutoComplete({ city: '全国' });
-    } catch {}
+    } catch (e) {
+      console.warn('AutoComplete 初始化失败:', e);
+    }
 
     // 默认使用骑行路线规划
     this._riding = new AMap.Riding({
@@ -106,30 +123,20 @@ const MapCtrl = {
   // ===== 搜索地点 =====
   async searchPlace(keyword) {
     return new Promise((resolve, reject) => {
-      if (!this._autoComplete) {
-        reject(new Error('搜索服务未初始化'));
-        return;
+      // 直接用 PlaceSearch（比 AutoComplete 更可靠）
+      if (!this._placeSearch) {
+        this._placeSearch = new AMap.PlaceSearch({ city: '全国', pageSize: 10 });
       }
-      this._autoComplete.search(keyword, (status, result) => {
-        if (status === 'complete' && result.tips) {
-          resolve(result.tips);
+      this._placeSearch.search(keyword, (status, result) => {
+        if (status === 'complete' && result.poiList) {
+          resolve(result.poiList.pois.map(poi => ({
+            name: poi.name,
+            address: poi.address,
+            location: poi.location,
+            id: poi.id,
+          })));
         } else {
-          // 备用：PlaceSearch
-          if (!this._placeSearch) {
-            this._placeSearch = new AMap.PlaceSearch({ city: '全国', pageSize: 10 });
-          }
-          this._placeSearch.search(keyword, (s, r) => {
-            if (s === 'complete' && r.poiList) {
-              resolve(r.poiList.pois.map(poi => ({
-                name: poi.name,
-                address: poi.address,
-                location: poi.location,
-                id: poi.id,
-              })));
-            } else {
-              reject(new Error('搜索失败'));
-            }
-          });
+          reject(new Error('搜索失败: ' + status));
         }
       });
     });

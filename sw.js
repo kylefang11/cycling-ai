@@ -1,5 +1,5 @@
 // sw.js — Service Worker for PWA
-const CACHE_NAME = 'cycling-ai-v1';
+const CACHE_NAME = 'cycling-ai-v2';
 const ASSETS = [
   '/index.html',
   '/css/style.css',

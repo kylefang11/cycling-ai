@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-title" content="骑行AI">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>骑行AI教练</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ===== 顶部导航栏 ===== -->
+  <header id="app-header">
+    <div class="header-left">
+      <button id="btn-menu" class="icon-btn" aria-label="菜单">☰</button>
+    </div>
+    <h1 id="header-title">骑行AI教练</h1>
+    <div class="header-right">
+      <button id="btn-sensors" class="icon-btn" aria-label="传感器">📡</button>
+      <button id="btn-settings" class="icon-btn" aria-label="设置">⚙️</button>
+    </div>
+  </header>
+
+  <!-- ===== 主视图容器 ===== -->
+  <main id="app-main">
+    <!-- 地图区域 -->
+    <div id="map-container">
+      <div id="amap"></div>
+      <!-- 地图上的浮动信息 -->
+      <div id="map-overlay">
+        <div id="nav-info" class="hidden">
+          <div id="nav-next-maneuver"></div>
+          <div id="nav-distance"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 仪表盘 ===== -->
+    <div id="dashboard">
+      <!-- 模式切换标签 -->
+      <div id="mode-tabs">
+        <button class="tab active" data-mode="plan">🗺️ 规划</button>
+        <button class="tab" data-mode="ride">🚴 骑行</button>
+        <button class="tab" data-mode="summary">📊 总结</button>
+      </div>
+
+      <!-- === 规划模式 === -->
+      <div id="panel-plan" class="panel active">
+        <div class="route-search">
+          <div class="search-row">
+            <span class="search-icon">🟢</span>
+            <input id="input-start" type="text" placeholder="起点（默认当前位置）" />
+          </div>
+          <div class="search-row">
+            <span class="search-icon">🔴</span>
+            <input id="input-end" type="text" placeholder="搜索目的地" />
+            <button id="btn-search-end" class="btn-sm">搜索</button>
+          </div>
+        </div>
+        <div id="route-results" class="hidden">
+          <div id="route-list"></div>
+        </div>
+        <div id="route-summary" class="hidden">
+          <div class="route-stat"><span class="stat-label">距离</span><span id="route-distance" class="stat-value">--</span></div>
+          <div class="route-stat"><span class="stat-label">时间</span><span id="route-duration" class="stat-value">--</span></div>
+          <div class="route-stat"><span class="stat-label">爬升</span><span id="route-ascent" class="stat-value">--</span></div>
+        </div>
+        <button id="btn-start-ride" class="btn-primary hidden">🚴 开始骑行</button>
+      </div>
+
+      <!-- === 骑行模式 === -->
+      <div id="panel-ride" class="panel">
+        <!-- 核心指标卡片 -->
+        <div id="metrics-grid">
+          <div class="metric-card" id="mc-speed">
+            <div class="metric-icon">🚴</div>
+            <div class="metric-value" id="val-speed">0.0</div>
+            <div class="metric-unit">km/h</div>
+            <div class="metric-label">速度</div>
+          </div>
+          <div class="metric-card" id="mc-cadence">
+            <div class="metric-icon">🔄</div>
+            <div class="metric-value" id="val-cadence">--</div>
+            <div class="metric-unit">rpm</div>
+            <div class="metric-label">踏频</div>
+          </div>
+          <div class="metric-card" id="mc-hr">
+            <div class="metric-icon">❤️</div>
+            <div class="metric-value" id="val-hr">--</div>
+            <div class="metric-unit">bpm</div>
+            <div class="metric-label">心率</div>
+          </div>
+
+        </div>
+        <!-- AI 状态条 -->
+        <div id="ai-status-bar">
+          <div id="ai-zone-badge" class="zone-badge">--</div>
+          <div id="ai-coach-text">等待骑行数据...</div>
+        </div>
+        <!-- 骑行控制 -->
+        <div id="ride-controls">
+          <button id="btn-pause-ride" class="btn-ctrl">⏸️ 暂停</button>
+          <button id="btn-voice-toggle" class="btn-ctrl">🔊 语音</button>
+          <button id="btn-stop-ride" class="btn-ctrl btn-danger">⏹️ 结束</button>
+        </div>
+      </div>
+
+      <!-- === 总结模式 === -->
+      <div id="panel-summary" class="panel">
+        <div id="summary-content">
+          <p class="summary-placeholder">完成骑行后将在此显示总结报告</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== 侧边菜单 ===== -->
+  <div id="sidebar" class="sidebar hidden">
+    <div class="sidebar-header">
+      <h2>历史记录</h2>
+      <button id="btn-close-sidebar" class="icon-btn">✕</button>
+    </div>
+    <div id="ride-history-list" class="sidebar-body">
+      <p class="empty-hint">暂无骑行记录</p>
+    </div>
+  </div>
+  <div id="sidebar-overlay" class="hidden"></div>
+
+  <!-- ===== 传感器面板 ===== -->
+  <div id="sensor-panel" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📡 传感器连接</h2>
+        <button class="modal-close icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="sensor-item">
+          <span class="sensor-name">❤️ 心率带</span>
+          <span id="sensor-hr-status" class="sensor-status">未连接</span>
+          <button id="btn-connect-hr" class="btn-sm">连接</button>
+        </div>
+        <div class="sensor-item">
+          <span class="sensor-name">🔄 踏频器</span>
+          <span id="sensor-cadence-status" class="sensor-status">未连接</span>
+          <button id="btn-connect-cadence" class="btn-sm">连接</button>
+        </div>
+
+        <div class="sensor-note">
+          <p>💡 iOS 16+ 支持蓝牙心率带连接</p>
+
+          <p>💡 踏频也可通过GPS速度估算</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 设置面板 ===== -->
+  <div id="settings-panel" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ 设置</h2>
+        <button class="modal-close icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label>高德地图 API Key</label>
+          <input id="input-amap-key" type="text" placeholder="你的高德Web端JS API Key" />
+        </div>
+        <div class="setting-group">
+          <label>AI API Key（可选）</label>
+          <input id="input-ai-key" type="password" placeholder="OpenAI/其他大模型API Key" />
+        </div>
+        <div class="setting-group">
+          <label>AI API 地址（可选）</label>
+          <input id="input-ai-url" type="text" placeholder="https://api.openai.com/v1/chat/completions" />
+        </div>
+        <div class="setting-group">
+          <label>最大心率（用于区间计算）</label>
+          <input id="input-max-hr" type="number" value="190" />
+        </div>
+        <div class="setting-group">
+          <label>年龄（估算最大心率）</label>
+          <input id="input-age" type="number" placeholder="30" />
+        </div>
+        <div class="setting-group">
+          <label>语音播报间隔</label>
+          <select id="select-voice-interval">
+            <option value="30">30秒</option>
+            <option value="60" selected>1分钟</option>
+            <option value="120">2分钟</option>
+            <option value="300">5分钟</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label>导航语音</label>
+          <select id="select-nav-voice">
+            <option value="on" selected>开启</option>
+            <option value="off">关闭</option>
+          </select>
+        </div>
+        <button id="btn-save-settings" class="btn-primary">💾 保存设置</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- iOS后台保活：静音音频 -->
+  <audio id="keepalive-audio" loop preload="auto" playsinline webkit-playsinline>
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+
+  <!-- Scripts -->
+  <!-- 高德地图 JS API: key 从设置中读取，通过动态加载 -->
+  <script src="js/config.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/sensor.js"></script>
+  <script src="js/ai-coach.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // 动态加载高德地图 API
+    (function loadAmap() {
+      const key = Config.get('amapKey');
+      if (!key) {
+        console.warn('请在设置中配置高德地图 API Key');
+        const s = document.createElement('script');
+        s.src = 'js/map.js';
+        document.body.appendChild(s);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://webapi.amap.com/maps?v=2.0&key=' + key + '&plugin=AMap.Driving,AMap.Walking,AMap.Riding,AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.GeoLocation';
+      script.onload = () => {
+        const s2 = document.createElement('script');
+        s2.src = 'js/map.js';
+        document.body.appendChild(s2);
+      };
+      script.onerror = () => {
+        console.error('高德地图加载失败');
+        const s2 = document.createElement('script');
+        s2.src = 'js/map.js';
+        document.body.appendChild(s2);
+      };
+      document.body.appendChild(script);
+    })();
+
+    // 注册 Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

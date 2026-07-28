@@ -41,16 +41,10 @@ const Voice = {
   },
 
   _ensureAudioCtx() {
+    // 不创建振荡器，避免性能问题
     if (this._audioCtx) return;
     try {
       this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      // 创建一个极低音量的振荡器，让系统认为有音频活动
-      const osc = this._audioCtx.createOscillator();
-      const gain = this._audioCtx.createGain();
-      gain.gain.value = 0.001; // 几乎静音
-      osc.connect(gain);
-      gain.connect(this._audioCtx.destination);
-      osc.start();
     } catch {}
   },
 

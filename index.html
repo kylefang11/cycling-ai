@@ -215,42 +215,29 @@
   </audio>
 
   <!-- Scripts -->
-  <!-- 高德地图 JS API: key 从设置中读取，通过动态加载 -->
   <script src="js/config.js"></script>
   <script src="js/voice.js"></script>
   <script src="js/sensor.js"></script>
   <script src="js/ai-coach.js"></script>
+  <script src="js/map.js"></script>
   <script src="js/app.js"></script>
   <script>
-    // 动态加载高德地图 API
+    // 高德地图动态加载：读取配置中的 key
     (function loadAmap() {
       const key = Config.get('amapKey');
-      if (!key) {
-        console.warn('请在设置中配置高德地图 API Key');
+      if (key) {
         const s = document.createElement('script');
-        s.src = 'js/map.js';
+        s.src = 'https://webapi.amap.com/maps?v=2.0&key=' + key + '&plugin=AMap.Driving,AMap.Walking,AMap.Riding,AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.GeoLocation';
+        s.onerror = function() { console.warn('高德地图加载失败'); };
         document.body.appendChild(s);
-        return;
+      } else {
+        console.warn('请在设置中配置高德地图 API Key');
       }
-      const script = document.createElement('script');
-      script.src = 'https://webapi.amap.com/maps?v=2.0&key=' + key + '&plugin=AMap.Driving,AMap.Walking,AMap.Riding,AMap.Geocoder,AMap.AutoComplete,AMap.PlaceSearch,AMap.GeoLocation';
-      script.onload = () => {
-        const s2 = document.createElement('script');
-        s2.src = 'js/map.js';
-        document.body.appendChild(s2);
-      };
-      script.onerror = () => {
-        console.error('高德地图加载失败');
-        const s2 = document.createElement('script');
-        s2.src = 'js/map.js';
-        document.body.appendChild(s2);
-      };
-      document.body.appendChild(script);
     })();
 
     // 注册 Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').catch(function(){});
     }
   </script>
 </body>
